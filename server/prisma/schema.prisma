@@ -1,0 +1,19 @@
+// Minimal User model for EXP-STORY-003 (authentication).
+// EXP-STORY-001 owns the full data model; whichever story merges second
+// reconciles the schema (001's User is expected to be a superset).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String
+  role         String @default("member")
+}

@@ -1,13 +1,14 @@
 # dependencies
-/node_modules
+node_modules/
 
 # next.js
 /.next
 /out
 
 # testing
-/test-results
-/playwright-report
+test-results/
+playwright-report/
+.playwright/
 /coverage
 
 # database

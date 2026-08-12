@@ -3,15 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
   "scripts": {
     "dev": "next dev -p ${ARC_WEB_PORT:-3004}",
     "build": "next build",
     "start": "next start -p ${ARC_WEB_PORT:-3004}",
     "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "vitest run",
+    "test:unit": "vitest run && npm run test --workspaces",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate-cli.ts"
+    "db:migrate": "tsx src/db/migrate-cli.ts",
+    "dev:server": "npm run dev --workspace server",
+    "dev:web": "npm run dev --workspace web"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
