@@ -17,26 +17,62 @@ if (fs.existsSync(EXTRA_LIBS)) {
     .join(":");
 }
 
+const E2E_DB_URL = `file:${path.resolve(__dirname, "server/prisma/e2e.db")}`;
+const DEV_PORT = 8003;
+const WEB_PORT = 3003;
+
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
   use: {
-    baseURL: BASE_URL,
     trace: "on-first-retry",
   },
   projects: [
     {
+      // STORY-004 route-guard and smoke suites against the root Next.js app
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      testIgnore: "auth.spec.ts",
+      use: { ...devices["Desktop Chrome"], baseURL: BASE_URL },
+    },
+    {
+      // STORY-003 auth suite against the server/web workspaces
+      name: "auth-chromium",
+      testMatch: "auth.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: `http://localhost:${WEB_PORT}`,
+      },
     },
   ],
-  webServer: {
-    command: `npx next dev -p ${PORT}`,
-    port: PORT,
-    reuseExistingServer: !process.env.CI,
-    env: {
-      AUTH_SECRET: TEST_AUTH_SECRET,
+  webServer: [
+    {
+      command: `npx next dev -p ${PORT}`,
+      port: PORT,
+      reuseExistingServer: !process.env.CI,
+      env: {
+        AUTH_SECRET: TEST_AUTH_SECRET,
+      },
     },
-  },
+    {
+      command: "npm run dev --workspace server",
+      port: DEV_PORT,
+      reuseExistingServer: false,
+      env: {
+        DATABASE_URL: E2E_DB_URL,
+        JWT_SECRET: "e2e-secret",
+        ARC_DEV_PORT: String(DEV_PORT),
+      },
+    },
+    {
+      command: "npm run dev --workspace web",
+      port: WEB_PORT,
+      reuseExistingServer: false,
+      env: {
+        ARC_WEB_PORT: String(WEB_PORT),
+        ARC_DEV_PORT: String(DEV_PORT),
+      },
+    },
+  ],
 });
