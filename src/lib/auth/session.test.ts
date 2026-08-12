@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { mintSessionToken, tamperToken } from "../../../tests/helpers/jwt";
-import { TEST_AUTH_SECRET } from "../../../tests/helpers/secret";
+import { TEST_AUTH_SECRET } from "../../../tests/helpers/env";
 import { verifySession } from "./session";
 
 describe("verifySession", () => {
@@ -18,6 +18,11 @@ describe("verifySession", () => {
 
   it("returns null for an expired token", async () => {
     const token = await mintSessionToken({ expiresInSeconds: -60 });
+    await expect(verifySession(token)).resolves.toBeNull();
+  });
+
+  it("returns null for a correctly signed token that has no exp claim", async () => {
+    const token = await mintSessionToken({ expiresInSeconds: null });
     await expect(verifySession(token)).resolves.toBeNull();
   });
 

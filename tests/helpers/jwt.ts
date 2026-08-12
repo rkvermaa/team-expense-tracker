@@ -1,12 +1,15 @@
 import { SignJWT } from "jose";
-import { TEST_AUTH_SECRET } from "./secret";
+import { TEST_AUTH_SECRET } from "./env";
 
 type MintOptions = {
   sub?: string;
   role?: string;
   secret?: string;
-  /** Expiration relative to now, in seconds. Negative values mint an already-expired token. */
-  expiresInSeconds?: number;
+  /**
+   * Expiration relative to now, in seconds. Negative values mint an
+   * already-expired token; null omits the exp claim entirely.
+   */
+  expiresInSeconds?: number | null;
 };
 
 function toKey(secret: string): Uint8Array {
@@ -21,12 +24,14 @@ export async function mintSessionToken({
   expiresInSeconds = 60 * 60,
 }: MintOptions = {}): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  return new SignJWT({ role })
+  const jwt = new SignJWT({ role })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(sub)
-    .setIssuedAt(now)
-    .setExpirationTime(now + expiresInSeconds)
-    .sign(toKey(secret));
+    .setIssuedAt(now);
+  if (expiresInSeconds !== null) {
+    jwt.setExpirationTime(now + expiresInSeconds);
+  }
+  return jwt.sign(toKey(secret));
 }
 
 /**
@@ -36,6 +41,9 @@ export async function mintSessionToken({
  */
 export function tamperToken(token: string, patch: Record<string, unknown>): string {
   const [header, payload, signature] = token.split(".");
+  if (header === undefined || payload === undefined || signature === undefined) {
+    throw new Error("tamperToken: expected a three-part JWT");
+  }
   const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
   const altered = { ...decoded, ...patch };
   const reEncoded = Buffer.from(JSON.stringify(altered), "utf8").toString("base64url");

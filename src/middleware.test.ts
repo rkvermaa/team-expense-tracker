@@ -61,6 +61,27 @@ describe("middleware", () => {
     expectPassThrough(response);
   });
 
+  it("returns 401 JSON instead of a redirect for an unauthenticated API request", async () => {
+    const response = await middleware(makeRequest("/api/expenses"));
+    expect(response.status).toBe(401);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("content-type")).toContain("application/json");
+  });
+
+  it("returns 401 for an API request with a tampered session cookie", async () => {
+    const spoofed = tamperToken(await mintSessionToken({ role: "employee" }), {
+      role: "manager",
+    });
+    const response = await middleware(makeRequest("/api/expenses", spoofed));
+    expect(response.status).toBe(401);
+  });
+
+  it("lets an authenticated employee through to an API route", async () => {
+    const token = await mintSessionToken({ role: "employee" });
+    const response = await middleware(makeRequest("/api/expenses", token));
+    expectPassThrough(response);
+  });
+
   it("lets an unauthenticated request through to the public /login route", async () => {
     const response = await middleware(makeRequest("/login"));
     expectPassThrough(response);

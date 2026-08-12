@@ -8,6 +8,10 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
  * invalidating the signature - so direct URL entry, link clicks, and page
  * refreshes all go through the same guard.
  */
+function isApiRoute(pathname: string): boolean {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const access = classifyRoute(request.nextUrl.pathname);
   if (access === "public") {
@@ -18,6 +22,17 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     request.cookies.get(SESSION_COOKIE)?.value,
   );
   if (!session) {
+    // fetch() callers get a status code they can handle, not an HTML page.
+    if (isApiRoute(request.nextUrl.pathname)) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
+    }
+    // The original destination is intentionally not carried along (for
+    // example via a ?next= param): the login flow and its post-login return
+    // behaviour are owned by EXP-STORY-003, which can add that contract when
+    // there is a consumer for it.
     return NextResponse.redirect(new URL("/login", request.url));
   }
   if (access === "manager" && session.role !== "manager") {

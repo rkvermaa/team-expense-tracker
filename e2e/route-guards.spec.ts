@@ -1,7 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { BASE_URL } from "../tests/helpers/env";
 import { mintSessionToken, tamperToken } from "../tests/helpers/jwt";
-
-const BASE_URL = "http://localhost:3004";
 
 async function setSessionCookie(context: BrowserContext, token: string) {
   await context.addCookies([

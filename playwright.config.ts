@@ -2,9 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
-import { TEST_AUTH_SECRET } from "./tests/helpers/secret";
-
-const PORT = Number(process.env.ARC_WEB_PORT ?? 3004);
+import { BASE_URL, PORT, TEST_AUTH_SECRET } from "./tests/helpers/env";
 
 // On hosts without root access, chromium's system libraries (libnss3,
 // libnspr4, libasound2) can be provided by extracting the debs into this
@@ -24,7 +22,7 @@ export default defineConfig({
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: BASE_URL,
     trace: "on-first-retry",
   },
   projects: [
@@ -34,7 +32,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev`,
+    command: `npx next dev -p ${PORT}`,
     port: PORT,
     reuseExistingServer: !process.env.CI,
     env: {

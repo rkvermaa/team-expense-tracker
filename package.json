@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3004",
+    "dev": "next dev -p ${ARC_WEB_PORT:-3004}",
     "build": "next build",
-    "start": "next start -p 3004",
+    "start": "next start -p ${ARC_WEB_PORT:-3004}",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",

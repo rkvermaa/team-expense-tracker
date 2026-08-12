@@ -42,7 +42,12 @@ export async function verifySession(
   }
   const key = getSecretKey();
   try {
-    const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, key, {
+      algorithms: ["HS256"],
+      // Sessions must always carry an expiry; a token without one is invalid
+      // no matter who signed it.
+      requiredClaims: ["exp"],
+    });
     if (typeof payload.sub !== "string" || payload.sub.length === 0) {
       return null;
     }

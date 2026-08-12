@@ -1,6 +1,6 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
-import { TEST_AUTH_SECRET } from "./tests/helpers/secret";
+import { TEST_AUTH_SECRET } from "./tests/helpers/env";
 
 export default defineConfig({
   resolve: {
