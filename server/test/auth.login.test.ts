@@ -3,7 +3,7 @@ import request from 'supertest'
 import jwt from 'jsonwebtoken'
 import type { PrismaClient, User } from '@prisma/client'
 import { createApp } from '../src/app'
-import { createTestDb, createUser } from './helpers'
+import { createTestDb, createUser, TEST_PASSWORD } from './helpers'
 
 describe('POST /api/auth/login', () => {
   let prisma: PrismaClient
@@ -13,7 +13,7 @@ describe('POST /api/auth/login', () => {
   beforeAll(async () => {
     prisma = createTestDb()
     app = createApp(prisma)
-    user = await createUser(prisma, { email: 'alice@example.com', password: 's3cret-pw' })
+    user = await createUser(prisma, { email: 'alice@example.com', password: TEST_PASSWORD })
   })
 
   afterAll(async () => {
@@ -23,7 +23,7 @@ describe('POST /api/auth/login', () => {
   it('returns 200 and sets an HttpOnly JWT cookie on valid credentials', async () => {
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ email: 'alice@example.com', password: 's3cret-pw' })
+      .send({ email: 'alice@example.com', password: TEST_PASSWORD })
 
     expect(res.status).toBe(200)
 
@@ -46,10 +46,41 @@ describe('POST /api/auth/login', () => {
   it('returns the user without the password hash', async () => {
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ email: 'alice@example.com', password: 's3cret-pw' })
+      .send({ email: 'alice@example.com', password: TEST_PASSWORD })
 
     expect(res.status).toBe(200)
     expect(res.body.user).toEqual({ id: user.id, email: 'alice@example.com', role: 'member' })
     expect(JSON.stringify(res.body)).not.toContain(user.passwordHash)
+  })
+
+  it('returns 401 with a generic error and no cookie on a wrong password', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'alice@example.com', password: 'wrong-guess' })
+
+    expect(res.status).toBe(401)
+    expect(res.headers['set-cookie']).toBeUndefined()
+    expect(res.body).toEqual({ error: 'Invalid email or password' })
+  })
+
+  it('returns an identical 401 for an unknown email (no user enumeration)', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'nobody@example.com', password: 'wrong-guess' })
+
+    expect(res.status).toBe(401)
+    expect(res.headers['set-cookie']).toBeUndefined()
+    expect(res.body).toEqual({ error: 'Invalid email or password' })
+  })
+
+  it.each([
+    { name: 'missing email', body: { password: 'anything-at-all' } },
+    { name: 'missing password', body: { email: 'alice@example.com' } },
+    { name: 'non-string values', body: { email: 42, password: [] } },
+  ])('returns 400 on malformed body: $name', async ({ body }) => {
+    const res = await request(app).post('/api/auth/login').send(body)
+
+    expect(res.status).toBe(400)
+    expect(res.headers['set-cookie']).toBeUndefined()
   })
 })

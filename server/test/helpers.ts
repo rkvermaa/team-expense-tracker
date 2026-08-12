@@ -7,6 +7,9 @@ import bcrypt from 'bcryptjs'
 
 const serverRoot = path.resolve(__dirname, '..')
 
+// Deliberately fake, shared across tests - not a real credential.
+export const TEST_PASSWORD = 'dummy-test-credential'
+
 /** Creates a fresh SQLite database with the current schema and returns a client bound to it. */
 export function createTestDb(): PrismaClient {
   const dir = mkdtempSync(path.join(tmpdir(), 'expense-tracker-test-'))

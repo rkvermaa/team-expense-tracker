@@ -1,7 +1,10 @@
 import { execSync } from 'node:child_process'
 import path from 'node:path'
 
-export const E2E_USER = { email: 'e2e@example.com', password: 'correct-horse', role: 'member' }
+// Deliberately fake credential for the throwaway e2e database - not a real secret.
+const DUMMY_PASSWORD = 'dummy-e2e-credential'
+
+export const E2E_USER = { email: 'e2e@example.com', password: DUMMY_PASSWORD, role: 'member' }
 
 export default async function globalSetup() {
   const serverRoot = path.resolve(__dirname, '../server')
