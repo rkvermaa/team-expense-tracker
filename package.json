@@ -4,17 +4,29 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "dev": "next dev -p ${ARC_WEB_PORT:-3004}",
+    "build": "next build",
+    "start": "next start -p ${ARC_WEB_PORT:-3004}",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate-cli.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
-    "drizzle-orm": "^0.44.2"
+    "drizzle-orm": "^0.44.2",
+    "jose": "^5.9.6",
+    "next": "^15.4.5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^20.19.0",
+    "@types/node": "^22.16.5",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "drizzle-kit": "^0.31.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",

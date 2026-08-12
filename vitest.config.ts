@@ -1,7 +1,18 @@
+import path from "node:path";
 import { defineConfig } from "vitest/config";
+import { TEST_AUTH_SECRET } from "./tests/helpers/env";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+    },
+  },
   test: {
-    include: ["tests/**/*.test.ts"],
+    environment: "node",
+    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+    env: {
+      AUTH_SECRET: TEST_AUTH_SECRET,
+    },
   },
 });
