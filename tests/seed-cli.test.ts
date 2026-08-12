@@ -9,11 +9,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createDb } from "../src/db/client.js";
 import { users } from "../src/db/schema.js";
 import { verifyPassword } from "../src/lib/password.js";
-import {
-  DEMO_PASSWORD,
-  EMPLOYEE_EMAIL,
-  MANAGER_EMAIL,
-} from "../src/lib/seed-data.js";
+import { EMPLOYEE_EMAIL, MANAGER_EMAIL } from "../src/lib/seed-data.js";
+
+const DEMO_PASSWORD = "demo1234";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

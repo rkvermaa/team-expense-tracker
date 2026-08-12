@@ -1,8 +1,7 @@
 import { and, eq } from "drizzle-orm";
 
-import { hashPassword } from "../lib/password.js";
 import {
-  DEMO_PASSWORD,
+  DEMO_PASSWORD_BCRYPT_HASH,
   EMPLOYEE_EMAIL,
   MANAGER_EMAIL,
   SEED_EXPENSES,
@@ -34,7 +33,7 @@ function upsertUser(tx: Tx, email: string, role: UserRole): number {
   }
   const inserted = tx
     .insert(users)
-    .values({ email, passwordHash: hashPassword(DEMO_PASSWORD), role })
+    .values({ email, passwordHash: DEMO_PASSWORD_BCRYPT_HASH, role })
     .returning({ id: users.id })
     .get();
   return inserted.id;

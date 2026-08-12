@@ -5,7 +5,13 @@
  */
 import type { ExpenseStatus } from "../db/schema.js";
 
-export const DEMO_PASSWORD = "demo1234";
+/**
+ * Precomputed bcrypt hash (cost 10) of the demo password documented in the
+ * README. Only the hash is committed in production source; the plaintext
+ * lives in the README (for developers) and in tests (to verify login works).
+ */
+export const DEMO_PASSWORD_BCRYPT_HASH =
+  "$2b$10$xlhSEjZwYe0JFLQ8kb1iqeMYkgJqoP/trC.J2q17H7qZBZEjWM1tG";
 export const EMPLOYEE_EMAIL = "employee@demo.test";
 export const MANAGER_EMAIL = "manager@demo.test";
 

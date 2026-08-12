@@ -5,11 +5,11 @@ import { seed } from "../src/db/seed.js";
 import { expenses, statusHistory, users } from "../src/db/schema.js";
 import type { Db } from "../src/db/client.js";
 import { verifyPassword } from "../src/lib/password.js";
-import {
-  DEMO_PASSWORD,
-  EMPLOYEE_EMAIL,
-  MANAGER_EMAIL,
-} from "../src/lib/seed-data.js";
+import { EMPLOYEE_EMAIL, MANAGER_EMAIL } from "../src/lib/seed-data.js";
+
+// AC 1 fixes the demo password to exactly this value; tests assert the spec,
+// so the literal is intentional here (production source carries only the hash).
+const DEMO_PASSWORD = "demo1234";
 import { freshDb } from "./helpers/db.js";
 
 let db: Db;

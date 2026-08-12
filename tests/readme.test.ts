@@ -4,11 +4,9 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  DEMO_PASSWORD,
-  EMPLOYEE_EMAIL,
-  MANAGER_EMAIL,
-} from "../src/lib/seed-data.js";
+import { EMPLOYEE_EMAIL, MANAGER_EMAIL } from "../src/lib/seed-data.js";
+
+const DEMO_PASSWORD = "demo1234";
 
 const readmePath = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
