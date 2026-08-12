@@ -1,6 +1,34 @@
 # team-expense-tracker
 
-Next.js 15 (App Router) + TypeScript application.
+Track, submit, and approve team expenses. Next.js 15 (App Router) + TypeScript
+application.
+
+## Getting started
+
+Prerequisites: Node.js 20+.
+
+```sh
+npm install
+npm run db:seed
+```
+
+`npm run db:seed` creates the SQLite database (at `data/expense-tracker.db` by
+default, override with the `DATABASE_PATH` environment variable), applies all
+migrations, and populates it with demo data. It is idempotent - safe to re-run
+at any time; it never duplicates records or touches data you created yourself.
+
+## Demo accounts
+
+The seed creates two accounts you can log in with immediately:
+
+| Role     | Email                | Password   |
+| -------- | -------------------- | ---------- |
+| Employee | `employee@demo.test` | `demo1234` |
+| Manager  | `manager@demo.test`  | `demo1234` |
+
+The employee account owns a small set of demo expenses covering every status
+(submitted, approved, and rejected), and each decided expense has a status
+history entry recorded by the manager account.
 
 ## Development
 
@@ -14,6 +42,14 @@ if it is missing when a session is verified. Test runs inject their own value
 (see `tests/helpers/env.ts`), so no setup is needed for `npm test`. The dev
 server, the Playwright webServer, and the E2E cookie origin all derive their
 port from `ARC_WEB_PORT` (default 3004).
+
+Database workflow:
+
+```sh
+npm run db:generate  # regenerate drizzle migrations after schema changes
+npm run db:migrate   # apply migrations without seeding
+npm run db:seed      # apply migrations and populate demo data
+```
 
 ## Sessions and route guards
 

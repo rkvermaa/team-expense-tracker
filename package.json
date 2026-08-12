@@ -16,10 +16,12 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate-cli.ts",
+    "db:seed": "tsx src/db/seed-cli.ts",
     "dev:server": "npm run dev --workspace server",
     "dev:web": "npm run dev --workspace web"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "better-sqlite3": "^11.10.0",
     "drizzle-orm": "^0.44.2",
     "jose": "^5.9.6",
