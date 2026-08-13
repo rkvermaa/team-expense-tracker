@@ -6,6 +6,7 @@ export default function DashboardPage() {
     <main>
       <h1>Dashboard</h1>
       <nav>
+        <Link href="/expenses">Expenses</Link>
         <Link href="/manager">Manager area</Link>
       </nav>
     </main>

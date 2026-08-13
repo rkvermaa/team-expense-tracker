@@ -71,6 +71,7 @@ function upsertExpenses(
         userId: employeeId,
         amountCents: seedExpense.amountCents,
         description: seedExpense.description,
+        category: seedExpense.category,
         expenseDate: toSqliteTimestamp(filedAt).slice(0, 10),
         status: seedExpense.status,
         createdAt: toSqliteTimestamp(filedAt),

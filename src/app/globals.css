@@ -1,0 +1,131 @@
+:root {
+  --border: #e2e2e5;
+  --muted: #6b7280;
+  --fg: #1f2933;
+  --accent: #2563eb;
+  --surface: #ffffff;
+  --surface-hover: #f5f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: var(--fg);
+  background: #f9fafb;
+  line-height: 1.5;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+/* Standard accessible utility: content stays in the accessibility tree
+   (read by screen readers) but is removed from the visual layout. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.expense-list {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.expense-row {
+  display: grid;
+  grid-template-columns: 7rem 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+
+.expense-row:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.expense-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.expense-date {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.expense-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.expense-category {
+  color: var(--muted);
+}
+
+.expense-status {
+  justify-self: end;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  text-transform: capitalize;
+  background: #eef2f7;
+  color: var(--muted);
+}
+
+.expense-status--submitted {
+  background: #e0edff;
+  color: #1d4ed8;
+}
+
+.expense-status--approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.expense-status--rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.expense-status--draft {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.expenses-empty {
+  margin-top: 1.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+}

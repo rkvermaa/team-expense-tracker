@@ -1,8 +1,18 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
-import { BASE_URL, PORT, TEST_AUTH_SECRET } from "./tests/helpers/env";
+import {
+  BASE_URL,
+  NEXT_E2E_DB_PATH,
+  PORT,
+  TEST_AUTH_SECRET,
+} from "./tests/helpers/env";
+
+// The package is an ES module (package.json "type": "module"), so __dirname is
+// not a global here; derive it from import.meta.url.
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // On hosts without root access, chromium's system libraries (libnss3,
 // libnspr4, libasound2) can be provided by extracting the debs into this
@@ -17,7 +27,7 @@ if (fs.existsSync(EXTRA_LIBS)) {
     .join(":");
 }
 
-const E2E_DB_URL = `file:${path.resolve(__dirname, "server/prisma/e2e.db")}`;
+const E2E_DB_URL = `file:${path.resolve(dirname, "server/prisma/e2e.db")}`;
 const DEV_PORT = 8003;
 const WEB_PORT = 3003;
 
@@ -53,6 +63,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         AUTH_SECRET: TEST_AUTH_SECRET,
+        DATABASE_PATH: path.resolve(dirname, NEXT_E2E_DB_PATH),
       },
     },
     {
