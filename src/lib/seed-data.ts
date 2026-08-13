@@ -19,6 +19,8 @@ export type SeedExpense = {
   /** Unique within the seed set; used as the idempotency key. */
   description: string;
   amountCents: number;
+  /** Free-text category displayed by the list view (EXP-STORY-005). */
+  category: string;
   status: ExpenseStatus;
   /** How long ago the employee filed it, relative to seed run time. */
   createdDaysAgo: number;
@@ -27,10 +29,10 @@ export type SeedExpense = {
 };
 
 export const SEED_EXPENSES: readonly SeedExpense[] = [
-  { description: "Client lunch", amountCents: 4250, status: "submitted", createdDaysAgo: 6 },
-  { description: "Taxi to airport", amountCents: 2300, status: "submitted", createdDaysAgo: 5 },
-  { description: "Conference ticket", amountCents: 29900, status: "approved", createdDaysAgo: 20, decisionDaysAfter: 2 },
-  { description: "Hotel - 2 nights", amountCents: 24000, status: "approved", createdDaysAgo: 14, decisionDaysAfter: 3 },
-  { description: "Team dinner", amountCents: 18000, status: "rejected", createdDaysAgo: 12, decisionDaysAfter: 1 },
-  { description: "Monitor for home office", amountCents: 35000, status: "rejected", createdDaysAgo: 9, decisionDaysAfter: 2 },
+  { description: "Client lunch", amountCents: 4250, category: "Meals", status: "submitted", createdDaysAgo: 6 },
+  { description: "Taxi to airport", amountCents: 2300, category: "Travel", status: "submitted", createdDaysAgo: 5 },
+  { description: "Conference ticket", amountCents: 29900, category: "Education", status: "approved", createdDaysAgo: 20, decisionDaysAfter: 2 },
+  { description: "Hotel - 2 nights", amountCents: 24000, category: "Lodging", status: "approved", createdDaysAgo: 14, decisionDaysAfter: 3 },
+  { description: "Team dinner", amountCents: 18000, category: "Meals", status: "rejected", createdDaysAgo: 12, decisionDaysAfter: 1 },
+  { description: "Monitor for home office", amountCents: 35000, category: "Equipment", status: "rejected", createdDaysAgo: 9, decisionDaysAfter: 2 },
 ];

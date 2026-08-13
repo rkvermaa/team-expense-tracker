@@ -38,6 +38,7 @@ export const expenses = sqliteTable(
     amountCents: integer("amount_cents").notNull(),
     description: text("description").notNull(),
     expenseDate: text("expense_date").notNull(),
+    category: text("category").notNull().default("Uncategorized"),
     status: text("status").$type<ExpenseStatus>().notNull().default("draft"),
     createdAt: text("created_at")
       .notNull()

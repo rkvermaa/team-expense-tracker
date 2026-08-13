@@ -70,6 +70,10 @@ describe("seed: demo expenses (AC 3)", () => {
       expect(expense.amountCents).toBeGreaterThan(0);
       expect(expense.description).not.toBe("");
       expect(new Date(expense.expenseDate).getTime()).toBeLessThan(Date.now());
+      // EXP-STORY-005: every demo expense carries a real category, not the
+      // schema default, so the list view has something meaningful to show.
+      expect(expense.category).not.toBe("");
+      expect(expense.category).not.toBe("Uncategorized");
     }
   });
 });

@@ -58,9 +58,19 @@ describe("expenses table (AC2)", () => {
       "description",
       "expense_date",
       "status",
+      "category",
     ]) {
       expect(byName.get(col)?.notnull, `${col} should be NOT NULL`).toBe(1);
     }
+  });
+
+  it("defaults category to 'Uncategorized' when none is supplied (EXP-STORY-005)", () => {
+    const result = insertExpense(db, { userId: ownerId });
+    const row = db.$client
+      .prepare("SELECT category FROM expenses WHERE id = ?")
+      .get(result.lastInsertRowid) as { category: string };
+
+    expect(row.category).toBe("Uncategorized");
   });
 
   it("links each expense to an existing owner and defaults status to 'draft'", () => {
