@@ -78,18 +78,43 @@ test.describe("EXP-STORY-005: expense list view", () => {
     await expect(rows).toHaveCount(SEED_EXPENSES.length);
   });
 
-  test("AC3: each row links to its detail view and navigating changes the URL", async ({
+  test("AC3: clicking a row opens its detail view showing the record", async ({
     page,
     context,
   }) => {
     await loginAsEmployee(context);
     await page.goto("/expenses");
 
-    const rows = page.getByRole("link");
-    const first = rows.first();
-    await expect(first).toHaveAttribute("href", /^\/expenses\/\d+$/);
-    await first.click();
+    // "Client lunch" is a known seed expense: $42.50, Meals, submitted.
+    const row = page.getByRole("link").filter({ hasText: "$42.50" });
+    await expect(row).toHaveAttribute("href", /^\/expenses\/\d+$/);
+    await row.click();
+
+    // The destination is a real detail view, not Next's 404 page: it renders a
+    // detail heading and the record's own fields (amount / category / status /
+    // description), proving navigation reached content, not just a URL change.
     await page.waitForURL(/\/expenses\/\d+$/);
+    await expect(
+      page.getByRole("heading", { name: "Expense detail" }),
+    ).toBeVisible();
+    await expect(page.getByText("$42.50")).toBeVisible();
+    await expect(page.getByText("Meals")).toBeVisible();
+    await expect(page.getByText("submitted")).toBeVisible();
+    await expect(page.getByText("Client lunch")).toBeVisible();
+  });
+
+  test("AC3: an expense the employee does not own is not viewable", async ({
+    page,
+    context,
+  }) => {
+    await loginAsEmployee(context);
+    // A valid session, but an id that does not belong to this employee: the
+    // owner-scoped query returns nothing and the route renders not-found, so
+    // the detail view never appears.
+    await page.goto("/expenses/999999");
+    await expect(
+      page.getByRole("heading", { name: "Expense detail" }),
+    ).toHaveCount(0);
   });
 
   test("AC4: an employee with no expenses sees the empty state and no rows", async ({

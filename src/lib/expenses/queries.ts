@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import type { Db } from "../../db/client.js";
 import { expenses } from "../../db/schema.js";
@@ -10,6 +10,10 @@ export type ExpenseListItem = {
   amountCents: number;
   category: string;
   status: ExpenseStatus;
+};
+
+export type ExpenseDetail = ExpenseListItem & {
+  description: string;
 };
 
 /**
@@ -34,4 +38,30 @@ export function listExpensesForUser(
     .where(eq(expenses.userId, userId))
     .orderBy(desc(expenses.expenseDate), desc(expenses.id))
     .all();
+}
+
+/**
+ * Returns a single expense by id, but only if it belongs to the given user, or
+ * `undefined` otherwise. Matching on both id and owner in the same `where` is
+ * the ownership boundary for the detail view (AC3): a request for another
+ * employee's record is indistinguishable from one that does not exist, so the
+ * caller renders the same not-found response for both.
+ */
+export function getExpenseForUser(
+  db: Db,
+  id: number,
+  userId: number,
+): ExpenseDetail | undefined {
+  return db
+    .select({
+      id: expenses.id,
+      expenseDate: expenses.expenseDate,
+      amountCents: expenses.amountCents,
+      category: expenses.category,
+      status: expenses.status,
+      description: expenses.description,
+    })
+    .from(expenses)
+    .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
+    .get();
 }

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Db } from "../../db/client.js";
 import { freshDb } from "../../../tests/helpers/db.js";
-import { listExpensesForUser } from "./queries.js";
+import { getExpenseForUser, listExpensesForUser } from "./queries.js";
 
 function insertUser(db: Db, email: string): number {
   const result = db.$client
@@ -21,16 +21,18 @@ function insertExpense(
     category?: string;
     status?: string;
     expenseDate?: string;
+    description?: string;
   },
 ): number {
   const result = db.$client
     .prepare(
       `INSERT INTO expenses (user_id, amount_cents, description, category, expense_date, status)
-       VALUES (?, ?, 'Some expense', ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?)`,
     )
     .run(
       fields.userId,
       fields.amountCents ?? 4200,
+      fields.description ?? "Some expense",
       fields.category ?? "Meals",
       fields.expenseDate ?? "2026-08-01",
       fields.status ?? "submitted",
@@ -94,5 +96,47 @@ describe("listExpensesForUser", () => {
     const ids = listExpensesForUser(db, ownerId).map((r) => r.id);
 
     expect(ids).toEqual([newerB, newerA, older]);
+  });
+});
+
+describe("getExpenseForUser", () => {
+  let db: Db;
+  let ownerId: number;
+  let otherId: number;
+
+  beforeEach(() => {
+    db = freshDb();
+    ownerId = insertUser(db, "owner@example.com");
+    otherId = insertUser(db, "other@example.com");
+  });
+
+  it("returns the owner's expense with all detail fields (AC3)", () => {
+    const id = insertExpense(db, {
+      userId: ownerId,
+      amountCents: 4250,
+      category: "Meals",
+      status: "submitted",
+      expenseDate: "2026-08-10",
+      description: "Client lunch",
+    });
+
+    expect(getExpenseForUser(db, id, ownerId)).toEqual({
+      id,
+      expenseDate: "2026-08-10",
+      amountCents: 4250,
+      category: "Meals",
+      status: "submitted",
+      description: "Client lunch",
+    });
+  });
+
+  it("returns undefined for an expense owned by another user (AC3 ownership)", () => {
+    const id = insertExpense(db, { userId: otherId });
+
+    expect(getExpenseForUser(db, id, ownerId)).toBeUndefined();
+  });
+
+  it("returns undefined when the expense id does not exist", () => {
+    expect(getExpenseForUser(db, 9999, ownerId)).toBeUndefined();
   });
 });
