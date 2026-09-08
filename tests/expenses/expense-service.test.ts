@@ -27,6 +27,13 @@ describe("parseAmountToCents", () => {
     expect(() => parseAmountToCents("-5")).toThrow();
     expect(() => parseAmountToCents("abc")).toThrow();
     expect(() => parseAmountToCents("")).toThrow();
+    expect(() => parseAmountToCents("42.50abc")).toThrow();
+    expect(() => parseAmountToCents("42.999")).toThrow();
+  });
+
+  it("rounds decimals that floats can't represent exactly", () => {
+    expect(parseAmountToCents("19.99")).toBe(1999);
+    expect(parseAmountToCents("0.29")).toBe(29);
   });
 });
 
@@ -82,8 +89,8 @@ describe("expense service", () => {
       expenseDate: "2026-08-01",
     });
 
-    changeStatus(db, employeeId, expense.id, "submitted");
-    changeStatus(db, managerId, expense.id, "approved");
+    changeStatus(db, employeeId, "employee", expense.id, "submitted");
+    changeStatus(db, managerId, "manager", expense.id, "approved");
 
     const history = db.$client
       .prepare("SELECT new_status FROM status_history WHERE expense_id = ?")
@@ -101,7 +108,9 @@ describe("expense service", () => {
       expenseDate: "2026-08-01",
     });
 
-    expect(() => changeStatus(db, managerId, expense.id, "approved")).toThrow();
+    expect(() =>
+      changeStatus(db, managerId, "manager", expense.id, "approved"),
+    ).toThrow();
   });
 
   it("does not let one employee act on another employee's expense", () => {
@@ -112,8 +121,21 @@ describe("expense service", () => {
       expenseDate: "2026-08-01",
     });
 
-    const result = changeStatus(db, other, expense.id, "submitted");
-    expect(result).toBeDefined();
+    expect(() =>
+      changeStatus(db, other, "employee", expense.id, "submitted"),
+    ).toThrow();
+  });
+
+  it("lets a manager act on an expense they did not file", () => {
+    const expense = createExpense(db, employeeId, {
+      description: "Team lunch",
+      amount: "42",
+      expenseDate: "2026-08-01",
+    });
+    changeStatus(db, employeeId, "employee", expense.id, "submitted");
+
+    const result = changeStatus(db, managerId, "manager", expense.id, "approved");
+    expect(result.status).toBe("approved");
   });
 
   it("attaches the filing user's email to each listed expense", () => {
@@ -126,5 +148,34 @@ describe("expense service", () => {
     const rows = listExpenses(db, { page: 0 });
     expect(rows).toHaveLength(1);
     expect(rows[0]?.userEmail).toBe("employee@example.com");
+  });
+
+  it("returns the first page of results on page 1", () => {
+    createExpense(db, employeeId, {
+      description: "Team lunch",
+      amount: "42",
+      expenseDate: "2026-08-01",
+    });
+
+    const rows = listExpenses(db, { page: 1, limit: 20 });
+    expect(rows).toHaveLength(1);
+  });
+
+  it("scopes the list to a single user when userId is given", () => {
+    const other = insertUser(db, "other@example.com");
+    createExpense(db, employeeId, {
+      description: "Team lunch",
+      amount: "42",
+      expenseDate: "2026-08-01",
+    });
+    createExpense(db, other, {
+      description: "Taxi",
+      amount: "10",
+      expenseDate: "2026-08-02",
+    });
+
+    const rows = listExpenses(db, { userId: employeeId });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.userId).toBe(employeeId);
   });
 });

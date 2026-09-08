@@ -1,4 +1,5 @@
 import { eq, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 import type { Db } from "@/db/client";
 import {
@@ -7,6 +8,7 @@ import {
   users,
   type ExpenseStatus,
 } from "@/db/schema";
+import type { Role } from "@/lib/auth/session";
 
 import { parseAmountToCents } from "./money";
 import { assertTransition } from "./transitions";
@@ -15,6 +17,13 @@ export class ExpenseNotFoundError extends Error {
   constructor(id: number) {
     super(`Expense ${id} does not exist`);
     this.name = "ExpenseNotFoundError";
+  }
+}
+
+export class ExpenseAccessDeniedError extends Error {
+  constructor(id: number) {
+    super(`You do not have access to expense ${id}`);
+    this.name = "ExpenseAccessDeniedError";
   }
 }
 
@@ -47,6 +56,8 @@ export interface ListOptions {
   /** Column to order by; one of the sortable columns below. */
   sort?: string;
   dir?: "asc" | "desc";
+  /** Restrict the list to expenses filed by this user. */
+  userId?: number;
 }
 
 const SORTABLE_COLUMNS = [
@@ -100,14 +111,21 @@ function loadExpense(db: Db, expenseId: number): ExpenseRow {
 /**
  * Move an expense to a new status and record who did it. The transition graph
  * in transitions.ts decides what is legal; this function only performs it.
+ *
+ * Managers may act on any expense (they are reviewing someone else's by
+ * definition); employees may only act on expenses they filed themselves.
  */
 export function changeStatus(
   db: Db,
   actorId: number,
+  actorRole: Role,
   expenseId: number,
   next: ExpenseStatus,
 ): ExpenseRow {
   const current = loadExpense(db, expenseId);
+  if (actorRole !== "manager" && current.userId !== actorId) {
+    throw new ExpenseAccessDeniedError(expenseId);
+  }
   assertTransition(current.status, next);
 
   db.update(expenses)
@@ -130,6 +148,9 @@ export function updateExpense(
   input: Partial<CreateExpenseInput>,
 ): ExpenseRow {
   const current = loadExpense(db, expenseId);
+  if (current.userId !== actorId) {
+    throw new ExpenseAccessDeniedError(expenseId);
+  }
   if (current.status !== "draft") {
     throw new Error("Only draft expenses can be edited");
   }
@@ -159,28 +180,34 @@ export function updateExpense(
  */
 export function listExpenses(db: Db, options: ListOptions = {}): ExpenseView[] {
   const limit = options.limit ?? DEFAULT_LIMIT;
-  const page = options.page ?? 1;
-  const offset = page * limit;
+  const page = Math.max(1, options.page ?? 1);
+  const offset = (page - 1) * limit;
 
   const sortColumn = SORTABLE_COLUMNS.includes(options.sort ?? "")
     ? options.sort
     : "created_at";
   const dir = options.dir === "asc" ? "asc" : "desc";
 
+  const where: SQL | undefined =
+    options.userId !== undefined ? eq(expenses.userId, options.userId) : undefined;
+
   const rows = db
-    .select()
+    .select({
+      id: expenses.id,
+      userId: expenses.userId,
+      amountCents: expenses.amountCents,
+      description: expenses.description,
+      expenseDate: expenses.expenseDate,
+      status: expenses.status,
+      userEmail: sql<string>`coalesce(${users.email}, '')`,
+    })
     .from(expenses)
-    .orderBy(sql.raw(`${sortColumn} ${dir}`))
+    .leftJoin(users, eq(users.id, expenses.userId))
+    .where(where)
+    .orderBy(sql.raw(`expenses.${sortColumn} ${dir}`))
     .limit(limit)
     .offset(offset)
-    .all() as ExpenseRow[];
+    .all();
 
-  return rows.map((row) => {
-    const owner = db
-      .select({ email: users.email })
-      .from(users)
-      .where(eq(users.id, row.userId))
-      .get();
-    return { ...row, userEmail: owner?.email ?? "" };
-  });
+  return rows as ExpenseView[];
 }

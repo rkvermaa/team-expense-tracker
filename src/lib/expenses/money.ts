@@ -14,20 +14,25 @@ export class InvalidAmountError extends Error {
   }
 }
 
+/** Whole number, or up to two decimal places, e.g. "42", "42.5", "19.99". */
+const AMOUNT_PATTERN = /^\d+(\.\d{1,2})?$/;
+
 /**
  * Parse a user-entered amount ("42", "42.5", "19.99") into integer cents.
  * Throws InvalidAmountError for anything non-numeric, zero, or negative.
  */
 export function parseAmountToCents(raw: string): number {
   const trimmed = raw.trim();
-  if (trimmed.length === 0) {
+  if (!AMOUNT_PATTERN.test(trimmed)) {
     throw new InvalidAmountError(raw);
   }
   const amount = parseFloat(trimmed);
-  if (Number.isNaN(amount) || amount <= 0) {
+  if (amount <= 0) {
     throw new InvalidAmountError(raw);
   }
-  const cents = Math.floor(amount * 100);
+  // Round rather than truncate: floats can't represent decimals like 19.99
+  // exactly, so `19.99 * 100` lands on 1998.9999999999998.
+  const cents = Math.round(amount * 100);
   if (cents > MAX_AMOUNT_CENTS) {
     throw new InvalidAmountError(raw);
   }
