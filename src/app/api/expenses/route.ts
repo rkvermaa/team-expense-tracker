@@ -5,6 +5,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
 import {
   createExpense,
   listExpenses,
+  ValidationError,
   type ListOptions,
 } from "@/lib/expenses/expense-service";
 import { InvalidAmountError } from "@/lib/expenses/money";
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
     return NextResponse.json({ expense }, { status: 201 });
   } catch (error) {
-    if (error instanceof InvalidAmountError) {
+    if (error instanceof InvalidAmountError || error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     throw error;

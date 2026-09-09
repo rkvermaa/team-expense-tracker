@@ -27,6 +27,14 @@ export class ForbiddenError extends Error {
   }
 }
 
+/** Thrown for malformed or missing input; callers should map this to 400. */
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
 export interface ExpenseRow {
   id: number;
   userId: number;
@@ -69,11 +77,21 @@ const SORTABLE_COLUMNS = [
 
 const DEFAULT_LIMIT = 20;
 
-/** Reject an expense date that lies in the future (today, local time, is fine). */
-function assertNotFutureDate(expenseDate: string): void {
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Reject anything that isn't an ISO-8601 calendar date, or that lies in the
+ * future (today, local time, is fine).
+ */
+function assertValidExpenseDate(expenseDate: unknown): void {
+  if (typeof expenseDate !== "string" || !ISO_DATE_PATTERN.test(expenseDate)) {
+    throw new ValidationError(
+      "Expense date is required and must be an ISO-8601 calendar date",
+    );
+  }
   const today = new Date().toISOString().slice(0, 10);
   if (expenseDate > today) {
-    throw new Error("Expense date cannot be in the future");
+    throw new ValidationError("Expense date cannot be in the future");
   }
 }
 
@@ -83,11 +101,11 @@ export function createExpense(
   actorId: number,
   input: CreateExpenseInput,
 ): ExpenseRow {
-  const description = input.description.trim();
-  if (description.length === 0) {
-    throw new Error("Description is required");
+  if (typeof input.description !== "string" || input.description.trim().length === 0) {
+    throw new ValidationError("Description is required");
   }
-  assertNotFutureDate(input.expenseDate);
+  const description = input.description.trim();
+  assertValidExpenseDate(input.expenseDate);
   const amountCents = parseAmountToCents(input.amount);
 
   const [row] = db
@@ -174,7 +192,7 @@ export function updateExpense(
     patch.amountCents = parseAmountToCents(input.amount);
   }
   if (input.expenseDate !== undefined) {
-    assertNotFutureDate(input.expenseDate);
+    assertValidExpenseDate(input.expenseDate);
     patch.expenseDate = input.expenseDate;
   }
 
@@ -201,24 +219,26 @@ export function listExpenses(db: Db, options: ListOptions = {}): ExpenseView[] {
     : "created_at";
   const dir = options.dir === "asc" ? "asc" : "desc";
 
-  const query = db.select().from(expenses);
+  const query = db
+    .select({
+      id: expenses.id,
+      userId: expenses.userId,
+      amountCents: expenses.amountCents,
+      description: expenses.description,
+      expenseDate: expenses.expenseDate,
+      status: expenses.status,
+      userEmail: users.email,
+    })
+    .from(expenses)
+    .innerJoin(users, eq(expenses.userId, users.id));
   const filtered =
     options.userId !== undefined
       ? query.where(eq(expenses.userId, options.userId))
       : query;
 
-  const rows = filtered
-    .orderBy(sql.raw(`${sortColumn} ${dir}`))
+  return filtered
+    .orderBy(sql.raw(`expenses.${sortColumn} ${dir}`))
     .limit(limit)
     .offset(offset)
-    .all() as ExpenseRow[];
-
-  return rows.map((row) => {
-    const owner = db
-      .select({ email: users.email })
-      .from(users)
-      .where(eq(users.id, row.userId))
-      .get();
-    return { ...row, userEmail: owner?.email ?? "" };
-  });
+    .all() as ExpenseView[];
 }

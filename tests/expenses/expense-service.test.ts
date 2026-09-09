@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Db } from "../../src/db/client.js";
 import {
@@ -6,6 +6,7 @@ import {
   createExpense,
   ForbiddenError,
   listExpenses,
+  ValidationError,
 } from "../../src/lib/expenses/expense-service.js";
 import { formatCents, parseAmountToCents } from "../../src/lib/expenses/money.js";
 import { canTransition } from "../../src/lib/expenses/transitions.js";
@@ -186,6 +187,34 @@ describe("expense service", () => {
     ).toThrow();
   });
 
+  it("rejects a missing description with a ValidationError, not a crash", () => {
+    expect(() =>
+      createExpense(db, employeeId, {
+        description: undefined as unknown as string,
+        amount: "42",
+        expenseDate: "2026-08-01",
+      }),
+    ).toThrow(ValidationError);
+  });
+
+  it("rejects a missing or malformed expense date with a ValidationError, not a crash", () => {
+    expect(() =>
+      createExpense(db, employeeId, {
+        description: "Team lunch",
+        amount: "42",
+        expenseDate: undefined as unknown as string,
+      }),
+    ).toThrow(ValidationError);
+
+    expect(() =>
+      createExpense(db, employeeId, {
+        description: "Team lunch",
+        amount: "42",
+        expenseDate: "08/01/2026",
+      }),
+    ).toThrow(ValidationError);
+  });
+
   it("attaches the filing user's email to each listed expense", () => {
     createExpense(db, employeeId, {
       description: "Team lunch",
@@ -230,5 +259,21 @@ describe("expense service", () => {
     const rows = listExpenses(db, { userId: employeeId });
     expect(rows).toHaveLength(1);
     expect(rows[0]?.userId).toBe(employeeId);
+  });
+
+  it("fetches a page in a single query, not one query per row (no N+1)", () => {
+    for (let i = 0; i < 5; i++) {
+      createExpense(db, employeeId, {
+        description: `Expense ${i}`,
+        amount: "10",
+        expenseDate: "2026-08-01",
+      });
+    }
+
+    const prepareSpy = vi.spyOn(db.$client, "prepare");
+    const rows = listExpenses(db, { limit: 5 });
+    expect(rows).toHaveLength(5);
+    expect(prepareSpy).toHaveBeenCalledTimes(1);
+    prepareSpy.mockRestore();
   });
 });

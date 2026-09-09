@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createDb } from "@/db/client";
-import type { ExpenseStatus } from "@/db/schema";
+import { EXPENSE_STATUSES, type ExpenseStatus } from "@/db/schema";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
 import {
   changeStatus,
@@ -39,7 +39,14 @@ export async function PATCH(
 
   const { id } = await context.params;
   const body = await request.json();
-  const next = body.status as ExpenseStatus;
+
+  if (!EXPENSE_STATUSES.includes(body.status)) {
+    return NextResponse.json(
+      { error: `"${body.status}" is not a valid expense status` },
+      { status: 400 },
+    );
+  }
+  const next: ExpenseStatus = body.status;
 
   if (MANAGER_ONLY.includes(next) && session.role !== "manager") {
     return NextResponse.json(
