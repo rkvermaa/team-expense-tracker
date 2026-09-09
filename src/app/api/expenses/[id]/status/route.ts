@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createDb } from "@/db/client";
 import type { ExpenseStatus } from "@/db/schema";
-import { SESSION_COOKIE, verifySession, type Role } from "@/lib/auth/session";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
 import {
   changeStatus,
   ExpenseNotFoundError,
+  ForbiddenError,
 } from "@/lib/expenses/expense-service";
 import { InvalidTransitionError } from "@/lib/expenses/transitions";
 
@@ -21,8 +22,9 @@ const MANAGER_ONLY: ExpenseStatus[] = ["approved", "rejected"];
  *
  * Body: `{ "status": "submitted" | "approved" | "rejected" | "draft" }`
  *
- * A manager reviewing a queue on someone's behalf can pass `actingRole` so the
- * decision is attributed correctly; otherwise the session's own role is used.
+ * The acting role always comes from the verified session, never from the
+ * request body - otherwise any caller could self-declare "manager" and
+ * approve their own expense.
  */
 export async function PATCH(
   request: NextRequest,
@@ -38,9 +40,8 @@ export async function PATCH(
   const { id } = await context.params;
   const body = await request.json();
   const next = body.status as ExpenseStatus;
-  const role: Role = body.actingRole ?? session.role;
 
-  if (MANAGER_ONLY.includes(next) && role !== "manager") {
+  if (MANAGER_ONLY.includes(next) && session.role !== "manager") {
     return NextResponse.json(
       { error: "Only a manager can approve or reject an expense" },
       { status: 403 },
@@ -48,11 +49,20 @@ export async function PATCH(
   }
 
   try {
-    const expense = changeStatus(db(), Number(session.sub), Number(id), next);
+    const expense = changeStatus(
+      db(),
+      Number(session.sub),
+      session.role,
+      Number(id),
+      next,
+    );
     return NextResponse.json({ expense });
   } catch (error) {
     if (error instanceof ExpenseNotFoundError) {
       return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
     }
     if (error instanceof InvalidTransitionError) {
       return NextResponse.json({ error: error.message }, { status: 409 });

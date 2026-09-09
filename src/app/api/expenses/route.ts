@@ -14,10 +14,12 @@ function db() {
 }
 
 /**
- * GET /api/expenses - the current user's expense list.
+ * GET /api/expenses - the expense list.
  *
  * Authentication is already enforced by middleware.ts; we re-read the session
- * here only to know *who* is asking.
+ * here to know *who* is asking. An employee only ever sees their own
+ * expenses; a manager sees everyone's, since they must review submissions
+ * from others.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await verifySession(
@@ -33,6 +35,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     limit: Number(params.get("limit") ?? "20"),
     sort: params.get("sort") ?? undefined,
     dir: params.get("dir") === "asc" ? "asc" : "desc",
+    userId: session.role === "manager" ? undefined : Number(session.sub),
   };
 
   return NextResponse.json({ expenses: listExpenses(db(), options) });

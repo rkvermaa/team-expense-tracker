@@ -8,6 +8,8 @@ import {
   type ExpenseStatus,
 } from "@/db/schema";
 
+import type { Role } from "@/lib/auth/session";
+
 import { parseAmountToCents } from "./money";
 import { assertTransition } from "./transitions";
 
@@ -15,6 +17,13 @@ export class ExpenseNotFoundError extends Error {
   constructor(id: number) {
     super(`Expense ${id} does not exist`);
     this.name = "ExpenseNotFoundError";
+  }
+}
+
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ForbiddenError";
   }
 }
 
@@ -47,6 +56,8 @@ export interface ListOptions {
   /** Column to order by; one of the sortable columns below. */
   sort?: string;
   dir?: "asc" | "desc";
+  /** Restrict the list to expenses filed by this user (employees see only their own). */
+  userId?: number;
 }
 
 const SORTABLE_COLUMNS = [
@@ -58,6 +69,14 @@ const SORTABLE_COLUMNS = [
 
 const DEFAULT_LIMIT = 20;
 
+/** Reject an expense date that lies in the future (today, local time, is fine). */
+function assertNotFutureDate(expenseDate: string): void {
+  const today = new Date().toISOString().slice(0, 10);
+  if (expenseDate > today) {
+    throw new Error("Expense date cannot be in the future");
+  }
+}
+
 /** Create a new expense in `draft` for the acting user. */
 export function createExpense(
   db: Db,
@@ -68,6 +87,7 @@ export function createExpense(
   if (description.length === 0) {
     throw new Error("Description is required");
   }
+  assertNotFutureDate(input.expenseDate);
   const amountCents = parseAmountToCents(input.amount);
 
   const [row] = db
@@ -100,14 +120,23 @@ function loadExpense(db: Db, expenseId: number): ExpenseRow {
 /**
  * Move an expense to a new status and record who did it. The transition graph
  * in transitions.ts decides what is legal; this function only performs it.
+ *
+ * A manager may act on anyone's expense; an employee may only act on their
+ * own. Callers must also enforce that only a manager can approve or reject
+ * (that decision needs the acting role, verified against the session, not
+ * anything client-supplied).
  */
 export function changeStatus(
   db: Db,
   actorId: number,
+  actorRole: Role,
   expenseId: number,
   next: ExpenseStatus,
 ): ExpenseRow {
   const current = loadExpense(db, expenseId);
+  if (actorRole !== "manager" && current.userId !== actorId) {
+    throw new ForbiddenError("You may only act on your own expenses");
+  }
   assertTransition(current.status, next);
 
   db.update(expenses)
@@ -130,6 +159,9 @@ export function updateExpense(
   input: Partial<CreateExpenseInput>,
 ): ExpenseRow {
   const current = loadExpense(db, expenseId);
+  if (current.userId !== actorId) {
+    throw new ForbiddenError("You may only edit your own expenses");
+  }
   if (current.status !== "draft") {
     throw new Error("Only draft expenses can be edited");
   }
@@ -142,6 +174,7 @@ export function updateExpense(
     patch.amountCents = parseAmountToCents(input.amount);
   }
   if (input.expenseDate !== undefined) {
+    assertNotFutureDate(input.expenseDate);
     patch.expenseDate = input.expenseDate;
   }
 
@@ -155,21 +188,26 @@ export function updateExpense(
 
 /**
  * Page through expenses, newest first by default, with the filing user's email
- * attached for the list UI.
+ * attached for the list UI. Pass `userId` to scope the list to one user's
+ * expenses (how employees are restricted to their own).
  */
 export function listExpenses(db: Db, options: ListOptions = {}): ExpenseView[] {
   const limit = options.limit ?? DEFAULT_LIMIT;
-  const page = options.page ?? 1;
-  const offset = page * limit;
+  const page = Math.max(1, options.page ?? 1);
+  const offset = (page - 1) * limit;
 
   const sortColumn = SORTABLE_COLUMNS.includes(options.sort ?? "")
     ? options.sort
     : "created_at";
   const dir = options.dir === "asc" ? "asc" : "desc";
 
-  const rows = db
-    .select()
-    .from(expenses)
+  const query = db.select().from(expenses);
+  const filtered =
+    options.userId !== undefined
+      ? query.where(eq(expenses.userId, options.userId))
+      : query;
+
+  const rows = filtered
     .orderBy(sql.raw(`${sortColumn} ${dir}`))
     .limit(limit)
     .offset(offset)

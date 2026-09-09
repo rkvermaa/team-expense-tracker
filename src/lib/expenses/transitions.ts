@@ -8,12 +8,15 @@ import type { ExpenseStatus } from "@/db/schema";
  *   draft     -> submitted        (employee submits for review)
  *   submitted -> approved | rejected  (manager decides)
  *   submitted -> draft            (employee withdraws while still pending)
+ *
+ * `approved` and `rejected` are terminal: `submitted` is the only route into
+ * `approved`, and once rejected an expense cannot be revived.
  */
 const ALLOWED: Record<ExpenseStatus, readonly ExpenseStatus[]> = {
   draft: ["submitted"],
   submitted: ["approved", "rejected", "draft"],
   approved: [],
-  rejected: ["approved", "draft"],
+  rejected: [],
 };
 
 export function canTransition(
