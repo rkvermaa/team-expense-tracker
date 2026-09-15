@@ -7,6 +7,7 @@ export default function DashboardPage() {
       <h1>Dashboard</h1>
       <nav>
         <Link href="/manager">Manager area</Link>
+        <Link href="/notifications">Notification history</Link>
       </nav>
     </main>
   );

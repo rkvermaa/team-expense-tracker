@@ -3,7 +3,7 @@
  * cross-story contract: auth (EXP-STORY-003) logs in with them, and the
  * README documents them.
  */
-import type { ExpenseStatus } from "../db/schema.js";
+import type { ExpenseStatus, NotificationType } from "../db/schema.js";
 
 /**
  * Precomputed bcrypt hash (cost 10) of the demo password documented in the
@@ -33,4 +33,21 @@ export const SEED_EXPENSES: readonly SeedExpense[] = [
   { description: "Hotel - 2 nights", amountCents: 24000, status: "approved", createdDaysAgo: 14, decisionDaysAfter: 3 },
   { description: "Team dinner", amountCents: 18000, status: "rejected", createdDaysAgo: 12, decisionDaysAfter: 1 },
   { description: "Monitor for home office", amountCents: 35000, status: "rejected", createdDaysAgo: 9, decisionDaysAfter: 2 },
+];
+
+export type SeedNotification = {
+  /** Unique per owning user within the seed set; used as the idempotency key. */
+  type: NotificationType;
+  channels: readonly string[];
+  sentDaysAgo: number;
+};
+
+export const EMPLOYEE_SEED_NOTIFICATIONS: readonly SeedNotification[] = [
+  { type: "due", channels: ["email"], sentDaysAgo: 5 },
+  { type: "confirmation", channels: ["email", "in_app"], sentDaysAgo: 3 },
+  { type: "overdue", channels: ["in_app"], sentDaysAgo: 1 },
+];
+
+export const MANAGER_SEED_NOTIFICATIONS: readonly SeedNotification[] = [
+  { type: "due", channels: ["email"], sentDaysAgo: 2 },
 ];
