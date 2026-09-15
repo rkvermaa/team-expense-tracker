@@ -14,6 +14,8 @@ describe("schema shape (AC5)", () => {
     expect(tables.map((t) => t.name)).toEqual([
       "__drizzle_migrations",
       "expenses",
+      "notifications",
+      "rent_payments",
       "status_history",
       "users",
     ]);

@@ -1,5 +1,11 @@
 import { sql } from "drizzle-orm";
-import { check, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  check,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const USER_ROLES = ["employee", "manager"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
@@ -74,6 +80,52 @@ export const statusHistory = sqliteTable(
     check(
       "status_history_status_check",
       sql`${table.newStatus} IN ('draft', 'submitted', 'approved', 'rejected')`,
+    ),
+  ],
+);
+
+export const NOTIFICATION_TYPES = ["payment_overdue"] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+export const rentPayments = sqliteTable(
+  "rent_payments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    tenantId: integer("tenant_id")
+      .notNull()
+      .references(() => users.id),
+    dueDate: text("due_date").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    paidAt: text("paid_at"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    check("rent_payments_amount_check", sql`${table.amountCents} > 0`),
+  ],
+);
+
+export const notifications = sqliteTable(
+  "notifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    type: text("type").$type<NotificationType>().notNull(),
+    rentPaymentId: integer("rent_payment_id")
+      .notNull()
+      .references(() => rentPayments.id),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    check("notifications_type_check", sql`${table.type} IN ('payment_overdue')`),
+    uniqueIndex("notifications_rent_payment_id_type_unique").on(
+      table.rentPaymentId,
+      table.type,
     ),
   ],
 );
