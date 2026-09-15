@@ -35,7 +35,7 @@ async function setUpLegacyServerDb() {
   execSync('npx prisma db push --skip-generate --force-reset', {
     cwd: serverRoot,
     env: { ...process.env, DATABASE_URL: dbUrl },
-    stdio: 'ignore',
+    stdio: 'pipe',
   })
 
   const { PrismaClient } = await import('@prisma/client')
@@ -55,6 +55,17 @@ async function setUpLegacyServerDb() {
 }
 
 export default async function globalSetup() {
+  // Required for every project (see e2e/notifications.spec.ts, route-guards.spec.ts, etc).
   await setUpNextDb()
-  await setUpLegacyServerDb()
+  // Only auth.spec.ts (the "auth-chromium" project) needs the legacy server/web stack's
+  // database. Its setup is not allowed to block every other project's tests: log the failure
+  // instead of swallowing it via stdio, but don't let it fail the whole run.
+  try {
+    await setUpLegacyServerDb()
+  } catch (error) {
+    console.error(
+      '[global-setup] Skipping legacy server/web e2e database setup - auth.spec.ts will fail, other suites are unaffected.',
+      error,
+    )
+  }
 }
