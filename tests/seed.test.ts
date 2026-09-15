@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { seed } from "../src/db/seed.js";
-import { expenses, statusHistory, users } from "../src/db/schema.js";
+import { expenses, notifications, statusHistory, users } from "../src/db/schema.js";
 import type { Db } from "../src/db/client.js";
 import { verifyPassword } from "../src/lib/password.js";
 import { EMPLOYEE_EMAIL, MANAGER_EMAIL } from "../src/lib/seed-data.js";
@@ -116,6 +116,42 @@ describe("seed: status history (AC 4)", () => {
   });
 });
 
+describe("seed: demo notifications", () => {
+  it("gives the employee notifications spanning all three types, and the manager a separate one", () => {
+    seed(db);
+
+    const employee = db
+      .select()
+      .from(users)
+      .where(eq(users.email, EMPLOYEE_EMAIL))
+      .get();
+    const manager = db
+      .select()
+      .from(users)
+      .where(eq(users.email, MANAGER_EMAIL))
+      .get();
+    const allNotifications = db.select().from(notifications).all();
+
+    const employeeNotifications = allNotifications.filter(
+      (n) => n.userId === employee?.id,
+    );
+    const managerNotifications = allNotifications.filter(
+      (n) => n.userId === manager?.id,
+    );
+
+    expect(employeeNotifications.map((n) => n.type).sort()).toEqual([
+      "confirmation",
+      "due",
+      "overdue",
+    ]);
+    expect(managerNotifications).toHaveLength(1);
+    for (const notification of allNotifications) {
+      expect(notification.channels.length).toBeGreaterThan(0);
+      expect(Number.isNaN(Date.parse(notification.sentAt))).toBe(false);
+    }
+  });
+});
+
 describe("seed: idempotency (AC 5)", () => {
   it("running the seed twice duplicates nothing and keeps the same rows", () => {
     seed(db);
@@ -138,6 +174,12 @@ describe("seed: idempotency (AC 5)", () => {
         .all()
         .map((r) => r.id)
         .sort(),
+      notificationIds: db
+        .select({ id: notifications.id })
+        .from(notifications)
+        .all()
+        .map((r) => r.id)
+        .sort(),
     });
 
     const first = snapshot();
@@ -148,5 +190,6 @@ describe("seed: idempotency (AC 5)", () => {
     expect(second.userIds).toHaveLength(2);
     expect(second.expenseIds).toHaveLength(6);
     expect(second.historyIds).toHaveLength(4);
+    expect(second.notificationIds).toHaveLength(4);
   });
 });

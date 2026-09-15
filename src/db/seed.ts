@@ -3,11 +3,20 @@ import { and, eq } from "drizzle-orm";
 import {
   DEMO_PASSWORD_BCRYPT_HASH,
   EMPLOYEE_EMAIL,
+  EMPLOYEE_SEED_NOTIFICATIONS,
   MANAGER_EMAIL,
+  MANAGER_SEED_NOTIFICATIONS,
   SEED_EXPENSES,
+  type SeedNotification,
 } from "../lib/seed-data.js";
 import type { Db } from "./client.js";
-import { expenses, statusHistory, users, type UserRole } from "./schema.js";
+import {
+  expenses,
+  notifications,
+  statusHistory,
+  users,
+  type UserRole,
+} from "./schema.js";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
@@ -92,6 +101,38 @@ function upsertExpenses(
   }
 }
 
+function upsertNotifications(
+  tx: Tx,
+  userId: number,
+  seedNotifications: readonly SeedNotification[],
+  now: Date,
+): void {
+  for (const seedNotification of seedNotifications) {
+    const existing = tx
+      .select({ id: notifications.id })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.type, seedNotification.type),
+        ),
+      )
+      .get();
+    if (existing) {
+      continue;
+    }
+
+    tx.insert(notifications)
+      .values({
+        userId,
+        type: seedNotification.type,
+        channels: seedNotification.channels.join(","),
+        sentAt: toSqliteTimestamp(daysAgo(now, seedNotification.sentDaysAgo)),
+      })
+      .run();
+  }
+}
+
 /**
  * Populates the database with the fixed demo dataset. Idempotent: rows are
  * matched by their natural keys (users by email, expenses by owner +
@@ -104,5 +145,7 @@ export function seed(db: Db): void {
     const employeeId = upsertUser(tx, EMPLOYEE_EMAIL, "employee");
     const managerId = upsertUser(tx, MANAGER_EMAIL, "manager");
     upsertExpenses(tx, employeeId, managerId, now);
+    upsertNotifications(tx, employeeId, EMPLOYEE_SEED_NOTIFICATIONS, now);
+    upsertNotifications(tx, managerId, MANAGER_SEED_NOTIFICATIONS, now);
   });
 }

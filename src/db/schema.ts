@@ -55,6 +55,31 @@ export const expenses = sqliteTable(
   ],
 );
 
+export const NOTIFICATION_TYPES = ["due", "confirmation", "overdue"] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+export const notifications = sqliteTable(
+  "notifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    type: text("type").$type<NotificationType>().notNull(),
+    channels: text("channels").notNull(),
+    sentAt: text("sent_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    check(
+      "notifications_type_check",
+      sql`${table.type} IN ('due', 'confirmation', 'overdue')`,
+    ),
+    check("notifications_channels_check", sql`${table.channels} <> ''`),
+  ],
+);
+
 export const statusHistory = sqliteTable(
   "status_history",
   {

@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 import { BASE_URL, PORT, TEST_AUTH_SECRET } from "./tests/helpers/env";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // On hosts without root access, chromium's system libraries (libnss3,
 // libnspr4, libasound2) can be provided by extracting the debs into this
@@ -18,6 +21,7 @@ if (fs.existsSync(EXTRA_LIBS)) {
 }
 
 const E2E_DB_URL = `file:${path.resolve(__dirname, "server/prisma/e2e.db")}`;
+const NEXT_DB_PATH = path.resolve(__dirname, "data/e2e-next.db");
 const DEV_PORT = 8003;
 const WEB_PORT = 3003;
 
@@ -53,6 +57,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         AUTH_SECRET: TEST_AUTH_SECRET,
+        DATABASE_PATH: NEXT_DB_PATH,
       },
     },
     {
