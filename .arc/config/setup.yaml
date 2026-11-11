@@ -1,0 +1,16 @@
+setup_command: npm ci
+commands:
+  test: npm test
+  build: npm run build
+package_install_commands:
+  npm: npm install {name}@{version}
+components:
+  comp_server:
+    mode: local
+    test_command: cd server && npm test
+    install_command: cd server && npm install {name}@{version}
+  comp_web:
+    mode: local
+    test_command: cd web && npm test
+    build_command: cd web && npm run build
+    install_command: cd web && npm install {name}@{version}
