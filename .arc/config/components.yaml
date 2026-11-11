@@ -1,0 +1,16 @@
+version: 1
+components:
+  comp_server:
+    name: Server
+    kind: api_service
+    directory: server
+  comp_web:
+    name: Web
+    kind: web_ui
+    directory: web
+  comp_relational_database:
+    name: Relational Database
+    kind: infrastructure
+  comp_email_delivery_service:
+    name: Email Delivery Service
+    kind: managed_service
