@@ -4,13 +4,30 @@ components:
     name: Server
     kind: api_service
     directory: server
+    stack:
+      choices:
+        database: SQLite
+        language: JavaScript/TypeScript
+        framework: Express
+        testing_tool_unit: vitest
   comp_web:
     name: Web
     kind: web_ui
     directory: web
+    stack:
+      choices:
+        language: JavaScript/TypeScript
+        framework: React
+        testing_tool_unit: vitest
   comp_relational_database:
     name: Relational Database
     kind: infrastructure
+    stack:
+      choices:
+        managed_service: SQLite (embedded file, self-run)
+      notes: 'Kept on SQLite: root app uses better-sqlite3 + Drizzle and the Server
+        workspace Prisma schema also targets SQLite; notification tables are added
+        to the existing store.'
   comp_email_delivery_service:
     name: Email Delivery Service
     kind: managed_service
